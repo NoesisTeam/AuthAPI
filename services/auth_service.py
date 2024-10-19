@@ -35,8 +35,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("user")
-        role: str = payload.get("role")
-        club: str = payload.get("club")
+        role: int = payload.get("role")
+        club: int = payload.get("club")
         if username is None or role is None or club is None:
             raise credentials_exception
         token_data = TokenData.TokenData(username=username, role=role, club=club)
@@ -45,8 +45,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return token_data
 
 class AuthenticationService:
-    def __init__(self, user_repository: UserRepository):
-        self.user_repository = user_repository
+    def __init__(self):
+        self.user_repository = UserRepository()
 
     def authenticate_user(self, user_name: str, password: str) -> Optional[User]:
         user = self.user_repository.find_by_user_name(user_name)
@@ -56,4 +56,7 @@ class AuthenticationService:
     def register_user(self, user: User) -> User:
         user.password = hash_password(user.password)
         return self.user_repository.create_user(user)
+    def get_role_in_club(self, user_name: str, club_id: int):
+        user = self.user_repository.find_by_user_name(user_name)
+        return self.user_repository.get_role_in_club(user.id, club_id)
 

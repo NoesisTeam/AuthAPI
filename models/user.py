@@ -7,6 +7,5 @@ class User(BaseModel):
     password: str
 
 class TokenData(BaseModel):
-    user_name: Optional[str] = None
-    role_id: Optional[str] = None
-    club_id: Optional[str] = None
+    user_id: str
+    club_id: int

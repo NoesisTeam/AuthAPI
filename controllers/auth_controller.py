@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-auth_service = AuthenticationService(UserRepository())
+auth_service = AuthenticationService()
 @router.post("/register")
 async def register_user(user: User):
     return auth_service.register_user(user)
@@ -20,8 +20,9 @@ async def login(credentials: User):
 
 @router.post("/token_club")
 async def token_club(token_data: TokenData):
-    participant_data = {"user": token_data.user_name,
-                    "role": token_data.role_id,
+    role_id = auth_service.get_role_in_club(token_data.user_id, token_data.club_id)
+    participant_data = {"user": token_data.user_id,
+                    "role": role_id,
                     "club": token_data.club_id}
     access_token = create_club_token(data=participant_data)
     return {"access_token": access_token, "token_type": "bearer"}

@@ -39,11 +39,10 @@ class UserRepository:
         self.db_connection.commit()
         return user
 
-    def is_founder_in_club(self, user_id: int, club_id: int) -> bool:
+    def get_role_in_club(self, user_id: int, club_id: int):
         cursor = self.db_connection.cursor()
         cursor.execute('SELECT id_rol FROM participant_role_club WHERE user_id = ? AND club_id = ?', (user_id, club_id))
         row = cursor.fetchone()
-        if row and row[0] == 1: # 1 is the id of the founder role
-            return True
-        return False
+        return row[0] if row else None
+
 
