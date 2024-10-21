@@ -63,5 +63,9 @@ class AuthenticationService:
         return self.user_repository.get_role_in_club(user.id, club_id)
 
     def get_role_in_club_by_id(self, id_user: int, club_id: int):
+        print(self.user_repository.get_role_in_club(id_user, club_id))
         return self.user_repository.get_role_in_club(id_user, club_id)
+
+    def find_by_user_name(self, user_name):
+        return self.user_repository.find_by_user_name(user_name)
 
