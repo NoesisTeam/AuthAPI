@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from typing import Optional
 from sqlalchemy.orm import Session
 from models.user import User, UserCreate
@@ -5,9 +6,10 @@ from core.app_settings import get_settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from core.database import get_engine
 
 settings = get_settings()
-engine = create_engine(settings.sqlalchemy_database_url)
+engine = get_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class UserRepository:
@@ -27,8 +29,11 @@ class UserRepository:
 
     def create_user(self, user: UserCreate) -> UserCreate:
         query = text('INSERT INTO users (user_name, user_password) VALUES (:user_name, :user_password)')
-        self.session.execute(query, {"user_name": user.user_name, "user_password": user.user_password})
-        self.session.commit()
+        try:
+            self.session.execute(query, {"user_name": user.user_name, "user_password": user.user_password})
+            self.session.commit()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Internal error in db")
         return user
 
     def get_role_in_club(self, user_id: int, club_id: int):
