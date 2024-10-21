@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
-from ..models.user import User, TokenData
+from models.user import User, TokenData, UserCreate
 from typing import Optional
-from ..repositories.user_repository import UserRepository
+from repositories.user_repository import UserRepository
 from core.security import hash_password, verify_password
 from datetime import datetime, timedelta, timezone
 from core import app_settings
@@ -10,9 +10,9 @@ from fastapi.security import OAuth2PasswordBearer
 
 settings = app_settings.get_settings()
 
-SECRET_KEY = settings.secret_key
-ALGORITHM = settings.algorithm
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="access_token")
 
@@ -39,7 +39,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         club: int = payload.get("club")
         if username is None or role is None or club is None:
             raise credentials_exception
-        token_data = TokenData.TokenData(username=username, role=role, club=club)
+        token_data = TokenData(username=username, role=role, club=club)  # Ajusta esta línea según tu modelo TokenData
     except JWTError:
         raise credentials_exception
     return token_data
@@ -50,13 +50,16 @@ class AuthenticationService:
 
     def authenticate_user(self, user_name: str, password: str) -> Optional[User]:
         user = self.user_repository.find_by_user_name(user_name)
-        if user and verify_password(password, user.password):
+        if user and verify_password(password, user.user_password):
             return user
         return None
-    def register_user(self, user: User) -> User:
-        user.password = hash_password(user.password)
+
+    def register_user(self, user: UserCreate) -> UserCreate:
+        user.user_password = hash_password(user.user_password)
         return self.user_repository.create_user(user)
+
     def get_role_in_club(self, user_name: str, club_id: int):
         user = self.user_repository.find_by_user_name(user_name)
         return self.user_repository.get_role_in_club(user.id, club_id)
+
 

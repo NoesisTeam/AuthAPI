@@ -1,19 +1,21 @@
 from fastapi import APIRouter, HTTPException
-from repositories.user_repository import UserRepository
-from ..services.auth_service import AuthenticationService, create_club_token
-from ..models.user import User, TokenData
-from pydantic import BaseModel
+
+from models.user import UserCreate, TokenData
+from services.auth_service import AuthenticationService, create_club_token
 
 router = APIRouter()
 
 auth_service = AuthenticationService()
 @router.post("/register")
-async def register_user(user: User):
+async def register_user(user: UserCreate):
     return auth_service.register_user(user)
 
+@router.get("/hola")
+async def hello():
+    return "Hola!"
 @router.post("/login")
-async def login(credentials: User):
-    user = auth_service.authenticate_user(credentials.user_name, credentials.password)
+async def login(credentials: UserCreate):
+    user = auth_service.authenticate_user(credentials.user_name, credentials.user_password)
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {"message": "Login successful", "user": user}

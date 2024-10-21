@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-
 from controllers import auth_controller
 
 # Crear la instancia de la aplicación

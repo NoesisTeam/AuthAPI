@@ -1,48 +1,38 @@
 from typing import Optional
-import mysql.connector
-from mysql.connector import Error
-from services.auth_service import settings
-from ..models.user import User
-from core import app_settings
+from sqlalchemy.orm import Session
+from models.user import User, UserCreate
+from core.app_settings import get_settings
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
+settings = get_settings()
+engine = create_engine(settings.sqlalchemy_database_url)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class UserRepository:
     def __init__(self):
-        self.db_connection = self.create_db_connection()
+        self.session = SessionLocal()
 
-    def create_db_connection(self):
-        settings = app_settings.get_settings()
-        try:
-            connection = mysql.connector.connect(
-                host=settings.MYSQL_DB_HOST,
-                user=settings.MYSQL_DB_USERNAME,
-                password=settings.MYSQL_DB_PASSWORD,
-                database=settings.MYSQL_DB_NAME
-            )
-            if connection.is_connected():
-                return connection
-        except Error as e:
-            return None
+    def close(self):
+        self.session.close()
 
     def find_by_user_name(self, user_name: str) -> Optional[User]:
-        cursor = self.db_connection.cursor()
-        cursor.execute('SELECT id, user_name, password FROM users WHERE email = ?', (user_name,))
+        query = text('SELECT id_user, user_name, user_password FROM users WHERE user_name = :user_name')
+        cursor = self.session.execute(query, {"user_name": user_name})
         row = cursor.fetchone()
         if row:
-            return User(id=row[0], email=row[1], password=row[2])
+            return User(id=row[0], user_name= row[1], user_password=row[2])
         return None
 
-    def create_user(self, user: User) -> User:
-        cursor = self.db_connection.cursor()
-        cursor.execute('INSERT INTO users (user_name, password) VALUES (?, ?)', (user.user_name, user.password))
-        user.id = cursor.lastrowid
-        self.db_connection.commit()
+    def create_user(self, user: UserCreate) -> UserCreate:
+        query = text('INSERT INTO users (user_name, user_password) VALUES (:user_name, :user_password)')
+        self.session.execute(query, {"user_name": user.user_name, "user_password": user.user_password})
+        self.session.commit()
         return user
 
     def get_role_in_club(self, user_id: int, club_id: int):
-        cursor = self.db_connection.cursor()
-        cursor.execute('SELECT id_rol FROM participant_role_club WHERE user_id = ? AND club_id = ?', (user_id, club_id))
+        query = text('SELECT id_role FROM participant_role_club WHERE id_user = :user_id AND id_club = :club_id')
+        cursor = self.session.execute(query, {"user_id": user_id, "club_id": club_id})
         row = cursor.fetchone()
         return row[0] if row else None
-
-
