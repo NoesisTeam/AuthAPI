@@ -28,7 +28,7 @@ async def login(credentials: UserCreate):
 
 @router.post("/token_club")
 async def token_club(token_data: TokenData):
-    role_id = auth_service.get_role_in_club(token_data.user_id, token_data.club_id)
+    role_id = auth_service.get_role_in_club_by_id(token_data.user_id, token_data.club_id)
     participant_data = {"user": token_data.user_id,
                         "role": role_id,
                         "club": token_data.club_id}

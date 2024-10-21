@@ -16,5 +16,5 @@ class UserCreate(BaseModel):
     user_password: str
 
 class TokenData(BaseModel):
-    user_id: str
+    user_id: int
     club_id: int

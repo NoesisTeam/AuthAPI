@@ -58,8 +58,10 @@ class AuthenticationService:
         user.user_password = hash_password(user.user_password)
         return self.user_repository.create_user(user)
 
-    def get_role_in_club(self, user_name: str, club_id: int):
+    def get_role_in_club_by_user_name(self, user_name: str, club_id: int):
         user = self.user_repository.find_by_user_name(user_name)
         return self.user_repository.get_role_in_club(user.id, club_id)
 
+    def get_role_in_club_by_id(self, id_user: int, club_id: int):
+        return self.user_repository.get_role_in_club(id_user, club_id)
 
