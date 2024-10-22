@@ -1,9 +1,16 @@
 from fastapi import FastAPI
 from controllers import auth_controller
-
+from fastapi.middleware.cors import CORSMiddleware
 # Crear la instancia de la aplicación
 app = FastAPI()
-
+# Incluir el middleware para permitir CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET","POST","PUT","UPDATE"],
+    allow_headers=["*"],
+)
 # Incluir los routers (controladores)
 app.include_router(auth_controller.router)
 

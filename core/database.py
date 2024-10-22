@@ -20,7 +20,6 @@ def get_engine():
 
 def get_db():
     db = Session(engine)
-
     try:
         yield db
     finally:

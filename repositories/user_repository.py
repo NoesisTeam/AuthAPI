@@ -1,43 +1,72 @@
-from fastapi import HTTPException
 from typing import Optional
+from fastapi import HTTPException, Depends
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
+from core.database import get_table, get_db
 from models.user import User, UserCreate
-from core.app_settings import get_settings
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
-from core.database import get_engine
 
-settings = get_settings()
-engine = get_engine()
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class UserRepository:
-    def __init__(self):
-        self.session = SessionLocal()
+    def __init__(self, db: Session = Depends(get_db)):
+        self.db = db
+        self.users_table = get_table('users')  # Obtiene la tabla de usuarios
 
-    def close(self):
-        self.session.close()
+    def _get_db(self) -> Session:
+        db = next(get_db())  # Obtiene la sesión usando el generador
+        return db
 
     def find_by_user_name(self, user_name: str) -> Optional[User]:
-        query = text('SELECT id_user, user_name, user_password FROM users WHERE user_name = :user_name')
-        cursor = self.session.execute(query, {"user_name": user_name})
-        row = cursor.fetchone()
-        if row:
-            return User(id=row[0], user_name= row[1], user_password=row[2])
-        return None
+        db = self._get_db()  # Obtiene la sesión
+        try:
+            query = db.query(self.users_table).filter(
+                and_(self.users_table.c.user_name == user_name)
+            )
+            row = query.first()  # Obtiene el primer resultado
+            if row:
+                return User(id=row.id_user, user_name=row.user_name, user_password=row.user_password)
+            return None
+        finally:
+            db.close()
+
 
     def create_user(self, user: UserCreate) -> UserCreate:
-        query = text('INSERT INTO users (user_name, user_password) VALUES (:user_name, :user_password)')
+        db = self._get_db()
         try:
-            self.session.execute(query, {"user_name": user.user_name, "user_password": user.user_password})
-            self.session.commit()
+            new_user = self.users_table.insert().values(
+                user_name=user.user_name,
+                user_password=user.user_password
+            )
+            db.execute(new_user)
+            db.commit()
         except Exception as e:
+            print(e)
+            db.rollback()  # Asegúrate de hacer rollback en caso de error
             raise HTTPException(status_code=500, detail="Internal error in db")
+        finally:
+            db.close()
         return user
 
-    def get_role_in_club(self, user_id: int, club_id: int):
-        query = text('SELECT id_role FROM participant_role_club WHERE id_user = :user_id AND id_club = :club_id')
-        cursor = self.session.execute(query, {"user_id": user_id, "club_id": club_id})
-        row = cursor.fetchone()
-        return row[0] if row else None
+    # Obtiene el rol de un usuario en un club
+    def get_role_id_in_club(self, user_id: int, club_id: int):
+        db = self._get_db()  # Obtiene la sesión
+        try:
+            roles_table = get_table('participant_role_club')  # Obtiene la tabla de roles
+            query = db.query(roles_table).filter(
+                and_(
+                    roles_table.c.id_user == user_id,
+                    roles_table.c.id_club == club_id
+                )
+            )
+            row = query.first()
+            return row.id_role if row else None
+        finally:
+            db.close()
+
+    def get_role_name_in_club(self, user_id: int, club_id: int):
+        db = self._get_db()
+        roles_table = get_table('roles')
+        role_id = self.get_role_id_in_club(user_id, club_id)
+        query = db.query(roles_table).filter(and_(roles_table.c.id_role == role_id))
+        row = query.first()
+        return row.role_name if row else None
+
