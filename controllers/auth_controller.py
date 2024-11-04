@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models.user import UserCreate, TokenData
+from models.user import UserCreate, TokenData, TokenBuild
 from services.auth_service import AuthenticationService, create_club_token
 
 router = APIRouter()
@@ -28,13 +28,12 @@ async def login(credentials: UserCreate):
 
 
 @router.post("/token_club")
-async def token_club(token_data: TokenData):
-    role_name = auth_service.get_role_name_in_club_by_id(token_data.user_id, token_data.club_id)
+async def token_club(token_build: TokenBuild):
+    role_name = auth_service.get_role_name_in_club_by_id(token_build.user_id, token_build.club_id)
     if not role_name:
         raise HTTPException(status_code=400, detail="User is not a member of the club")
-    token_data.role_name = role_name
-    participant_data = {"user": token_data.user_id,
-                        "role": token_data.role_name,
-                        "club": token_data.club_id}
+    participant_data = {"user": token_build.user_id,
+                        "role": role_name,
+                        "club": token_build.club_id}
     access_token = create_club_token(data=participant_data)
     return {"access_token": access_token, "token_type": "bearer"}

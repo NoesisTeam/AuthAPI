@@ -19,3 +19,7 @@ class TokenData(BaseModel):
     user_id: int
     role_name: str
     club_id: int
+
+class TokenBuild(BaseModel):
+    user_id: int
+    club_id: int
