@@ -10,6 +10,7 @@ class UserRepository:
     def __init__(self, db: Session = Depends(get_db)):
         self.db = db
         self.users_table = get_table('users')  # Obtiene la tabla de usuarios
+        self.club_table = get_table('clubs')  # Obtiene la tabla de clubs
 
     def _get_db(self) -> Session:
         db = next(get_db())  # Obtiene la sesión usando el generador
@@ -46,21 +47,35 @@ class UserRepository:
             db.close()
         return user
 
+    def is_club_status_active(self, club_id: int):
+        db = self._get_db()
+        try:
+            query = db.query(self.club_table).filter(
+                and_(self.club_table.c.id_club == club_id)
+            )
+            row = query.first()
+            return row.club_status == 'A' if row else False
+        finally:
+            db.close()
+
     # Obtiene el rol de un usuario en un club
     def get_role_id_in_club(self, user_id: int, club_id: int):
         db = self._get_db()  # Obtiene la sesión
-        try:
-            roles_table = get_table('participant_role_club')  # Obtiene la tabla de roles
-            query = db.query(roles_table).filter(
-                and_(
-                    roles_table.c.id_user == user_id,
-                    roles_table.c.id_club == club_id
+        if self.is_club_status_active(club_id):
+            try:
+                roles_table = get_table('participant_role_club')  # Obtiene la tabla de roles
+                query = db.query(roles_table).filter(
+                    and_(
+                        roles_table.c.id_user == user_id,
+                        roles_table.c.id_club == club_id
+                    )
                 )
-            )
-            row = query.first()
-            return row.id_role if row else None
-        finally:
-            db.close()
+                row = query.first()
+                return row.id_role if row else None
+            finally:
+                db.close()
+        else:
+            raise HTTPException(status_code=400, detail="Club does not exist or is not active")
 
     def get_role_name_in_club(self, user_id: int, club_id: int):
         db = self._get_db()

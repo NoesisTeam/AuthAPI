@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from models.user import UserCreate, TokenData, TokenBuild
 from services.auth_service import AuthenticationService, create_club_token
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 auth_service = AuthenticationService()
 
